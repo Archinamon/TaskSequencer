@@ -1,0 +1,49 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'me.tatarka:gradle-retrolambda:3.2.0'
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "/Users/Archinamon/Anoda/android/sdk/extras/android/m2repository" }
+}
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'me.tatarka.retrolambda'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+retrolambda {
+    oldJdk System.getenv("JAVA7_HOME")
+    javaVersion JavaVersion.VERSION_1_7
+    defaultMethods true
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.google.android:android:4.1.1.4'
+    compile 'com.google.guava:guava:18.0'
+    compile 'com.intellij:annotations:+'
+    compile 'org.jetbrains:annotations:+'
+    compile 'com.android.support:support-annotations:22.2.1'
+}
+
+def gitUrl = "https://github.com/Archinamon/TaskSequencer.git"
+
+group = 'com.archinamon'
+version = '1.0'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: uri('../'))
+        }
+    }
+}
