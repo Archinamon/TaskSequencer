@@ -1,8 +1,7 @@
 package com.archinamon;
 
-import android.app.Activity;
-import android.content.Context;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
@@ -15,13 +14,26 @@ final class RunnableSequencerImpl implements ISequencer {
     private static final int TASK_DO_COMPILE   = 0x0024;
     private static final int TASK_POST_COMPILE = 0x0032;
     private static final int TASK_TERMINATE    = 0xdead;
-    private Context               mContext;
     private Set<FloatingRunnable> mTaskSet;
     private FloatingRunnable      mPreCompileTask;
     private FloatingRunnable      mPostCompileTask;
     private Mode                  mExecutingMode;
 
-    final Handler mProcessor = new Handler() {
+    final Handler mUiProcessor = new Handler(Looper.getMainLooper()) {
+
+        @Override
+        public void handleMessage(final Message msg) {
+            if (msg.obj != null) {
+                FloatingRunnable task = (FloatingRunnable) msg.obj;
+                task.run();
+            }
+        }
+    };
+
+    {Looper.prepare();}
+    final Handler mProcessor = new Handler(Looper.myLooper()) {
+
+        {Looper.loop();}
 
         @Override
         public void handleMessage(final Message msg) {
@@ -39,9 +51,12 @@ final class RunnableSequencerImpl implements ISequencer {
                     assert msg.obj != null;
                     final FloatingRunnable actionPostCompile = ((FloatingRunnable) msg.obj);
                     postCompile(actionPostCompile);
+                    Looper.myLooper().quit();
 
                     break;
                 case TASK_TERMINATE:
+                    Looper.myLooper()
+                          .quit();
                     //noinspection unchecked
                     mTaskSet = Collections.EMPTY_SET;
                     mPreCompileTask = null;
@@ -57,8 +72,9 @@ final class RunnableSequencerImpl implements ISequencer {
             };
 
             if (task.isUiRunning()) {
-                if (mContext instanceof Activity)
-                    ((Activity) mContext).runOnUiThread(workTask);
+                Message msg = mUiProcessor.obtainMessage();
+                msg.obj = workTask;
+                mUiProcessor.sendMessageAtFrontOfQueue(msg);
             } else {
                 runOnSeparateThread(workTask);
             }
@@ -73,8 +89,9 @@ final class RunnableSequencerImpl implements ISequencer {
                 case ONEWAY:
                     for (final FloatingRunnable task : mTaskSet) {
                         if (task.isUiRunning()) {
-                            if (mContext instanceof Activity)
-                                ((Activity) mContext).runOnUiThread(task::run);
+                            Message msg = mUiProcessor.obtainMessage();
+                            msg.obj = task;
+                            mUiProcessor.sendMessage(msg);
                         } else {
                             runOnSeparateThread(task);
                         }
@@ -87,8 +104,9 @@ final class RunnableSequencerImpl implements ISequencer {
 
         void postCompile(@NotNull final FloatingRunnable task) {
             if (task.isUiRunning()) {
-                if (mContext instanceof Activity)
-                    ((Activity) mContext).runOnUiThread(task::run);
+                Message msg = mUiProcessor.obtainMessage();
+                msg.obj = task;
+                mUiProcessor.sendMessageAtFrontOfQueue(msg);
             } else {
                 runOnSeparateThread(task);
             }
@@ -101,6 +119,9 @@ final class RunnableSequencerImpl implements ISequencer {
                 message.obj = mPostCompileTask;
 
                 mProcessor.sendMessage(message);
+            } else {
+                Looper.myLooper()
+                      .quit();
             }
         }
 
@@ -110,8 +131,9 @@ final class RunnableSequencerImpl implements ISequencer {
                 task.mCallback = sentenceId -> doCoherenceStep(iterator);
 
                 if (task.isUiRunning()) {
-                    if (mContext instanceof Activity)
-                        ((Activity) mContext).runOnUiThread(task::run);
+                    Message msg = mUiProcessor.obtainMessage();
+                    msg.obj = task;
+                    mUiProcessor.sendMessageAtFrontOfQueue(msg);
                 } else {
                     runOnSeparateThread(task);
                 }
@@ -124,13 +146,13 @@ final class RunnableSequencerImpl implements ISequencer {
             Thread thread = new Thread(task);
             thread.setDaemon(true);
             thread.setPriority(Thread.MAX_PRIORITY);
-            thread.setUncaughtExceptionHandler(Thread.currentThread().getUncaughtExceptionHandler());
+            thread.setUncaughtExceptionHandler(Thread.currentThread()
+                                                     .getUncaughtExceptionHandler());
             thread.start();
         }
     };
 
     /*package_local*/ RunnableSequencerImpl(SequenceBuilder config) {
-        mContext = config.mContext;
         mTaskSet = Collections.unmodifiableSet(config.mTasks);
         mPreCompileTask = config.mPreCompileTask;
         mPostCompileTask = config.mPostCompileTask;
