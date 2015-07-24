@@ -1,6 +1,7 @@
 package com.archinamon;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +14,8 @@ final class RunnableSequencerImpl implements ISequencer {
     private static final int TASK_PRE_COMPILE  = 0x0016;
     private static final int TASK_DO_COMPILE   = 0x0024;
     private static final int TASK_POST_COMPILE = 0x0032;
-    private Activity                            mContext;
+    private static final int TASK_TERMINATE    = 0xdead;
+    private Context               mContext;
     private Set<FloatingRunnable> mTaskSet;
     private FloatingRunnable      mPreCompileTask;
     private FloatingRunnable      mPostCompileTask;
@@ -39,6 +41,12 @@ final class RunnableSequencerImpl implements ISequencer {
                     postCompile(actionPostCompile);
 
                     break;
+                case TASK_TERMINATE:
+                    //noinspection unchecked
+                    mTaskSet = Collections.EMPTY_SET;
+                    mPreCompileTask = null;
+                    mPostCompileTask = null;
+                    break;
             }
         }
 
@@ -49,7 +57,8 @@ final class RunnableSequencerImpl implements ISequencer {
             };
 
             if (task.isUiRunning()) {
-                mContext.runOnUiThread(workTask);
+                if (mContext instanceof Activity)
+                    ((Activity) mContext).runOnUiThread(workTask);
             } else {
                 runOnSeparateThread(workTask);
             }
@@ -64,7 +73,8 @@ final class RunnableSequencerImpl implements ISequencer {
                 case ONEWAY:
                     for (final FloatingRunnable task : mTaskSet) {
                         if (task.isUiRunning()) {
-                            mContext.runOnUiThread(task::run);
+                            if (mContext instanceof Activity)
+                                ((Activity) mContext).runOnUiThread(task::run);
                         } else {
                             runOnSeparateThread(task);
                         }
@@ -77,7 +87,8 @@ final class RunnableSequencerImpl implements ISequencer {
 
         void postCompile(@NotNull final FloatingRunnable task) {
             if (task.isUiRunning()) {
-                mContext.runOnUiThread(task::run);
+                if (mContext instanceof Activity)
+                    ((Activity) mContext).runOnUiThread(task::run);
             } else {
                 runOnSeparateThread(task);
             }
@@ -99,7 +110,8 @@ final class RunnableSequencerImpl implements ISequencer {
                 task.mCallback = sentenceId -> doCoherenceStep(iterator);
 
                 if (task.isUiRunning()) {
-                    mContext.runOnUiThread(task::run);
+                    if (mContext instanceof Activity)
+                        ((Activity) mContext).runOnUiThread(task::run);
                 } else {
                     runOnSeparateThread(task);
                 }
@@ -112,14 +124,13 @@ final class RunnableSequencerImpl implements ISequencer {
             Thread thread = new Thread(task);
             thread.setDaemon(true);
             thread.setPriority(Thread.MAX_PRIORITY);
-            thread.setUncaughtExceptionHandler(Thread.currentThread()
-                                                     .getUncaughtExceptionHandler());
+            thread.setUncaughtExceptionHandler(Thread.currentThread().getUncaughtExceptionHandler());
             thread.start();
         }
     };
 
     /*package_local*/ RunnableSequencerImpl(SequenceBuilder config) {
-        mContext = config.mActivity;
+        mContext = config.mContext;
         mTaskSet = Collections.unmodifiableSet(config.mTasks);
         mPreCompileTask = config.mPreCompileTask;
         mPostCompileTask = config.mPostCompileTask;
@@ -137,5 +148,10 @@ final class RunnableSequencerImpl implements ISequencer {
         } else {
             mProcessor.sendEmptyMessage(TASK_DO_COMPILE);
         }
+    }
+
+    @Override
+    public final void terminate() {
+        mProcessor.sendEmptyMessage(TASK_TERMINATE);
     }
 }

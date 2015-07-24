@@ -1,6 +1,7 @@
 package com.archinamon;
 
 import android.app.Activity;
+import android.content.Context;
 import android.util.Log;
 import com.archinamon.SequenceTask.Type;
 import org.jetbrains.annotations.NotNull;
@@ -12,15 +13,15 @@ import java.util.Set;
 public final class SequenceBuilder {
 
     public static final String TAG = SequenceBuilder.class.getSimpleName();
-    /*package_local*/ Activity              mActivity;
+    /*package_local*/ Context               mContext;
     /*package_local*/ Set<FloatingRunnable> mTasks;
     /*package_local*/ FloatingRunnable      mPreCompileTask;
     /*package_local*/ FloatingRunnable      mPostCompileTask;
     /*package_local*/ Mode                  mMode;
 
-    public SequenceBuilder(@NotNull Activity context) {
+    public SequenceBuilder(@NotNull Context context) {
         mTasks = new LinkedHashSet<>();
-        mActivity = context;
+        mContext = context;
     }
 
     public SequenceBuilder addSyncTask(Runnable task) {
