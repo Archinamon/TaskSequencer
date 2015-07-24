@@ -1,15 +1,13 @@
 package com.archinamon;
 
 import android.app.Activity;
-import android.support.annotation.NonNull;
 import android.util.Log;
 import com.archinamon.SequenceTask.Type;
+import org.jetbrains.annotations.NotNull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class SequenceBuilder {
 
@@ -20,9 +18,9 @@ public final class SequenceBuilder {
     /*package_local*/ FloatingRunnable      mPostCompileTask;
     /*package_local*/ Mode                  mMode;
 
-    public SequenceBuilder(Activity context) {
+    public SequenceBuilder(@NotNull Activity context) {
         mTasks = new LinkedHashSet<>();
-        mActivity = checkNotNull(context);
+        mActivity = context;
     }
 
     public SequenceBuilder addSyncTask(Runnable task) {
@@ -55,14 +53,16 @@ public final class SequenceBuilder {
         return this;
     }
 
-    public SequenceBuilder parseSequence(@NonNull final Object type) {
+    public SequenceBuilder parseSequence(@NotNull final Object type) {
         Class objClass = type.getClass();
         Annotation[] annotations = objClass.getAnnotations();
 
         boolean isSequenceAnnotationPresent = false;
         for (Annotation annotation : annotations) {
-            if (annotation instanceof Sequence)
+            if (annotation instanceof Sequence) {
                 isSequenceAnnotationPresent = true;
+                break;
+            }
         }
 
         if (!isSequenceAnnotationPresent)
@@ -109,24 +109,24 @@ public final class SequenceBuilder {
         return new RunnableSequencerImpl(this);
     }
 
-    private void addTask(Runnable task, boolean shouldRunInUiThread) {
+    private void addTask(@NotNull Runnable task, boolean shouldRunInUiThread) {
         FloatingRunnable floatTask = FloatingRunnable.newInstance();
         if (shouldRunInUiThread) floatTask.markUiRunning();
-        floatTask.define(checkNotNull(task));
+        floatTask.define(task);
         mTasks.add(floatTask);
     }
 
-    private void addOnPreCompileTask(Runnable task, boolean shouldRunInUiThread) {
+    private void addOnPreCompileTask(@NotNull Runnable task, boolean shouldRunInUiThread) {
         FloatingRunnable floatTask = FloatingRunnable.newInstance();
         if (shouldRunInUiThread) floatTask.markUiRunning();
-        floatTask.define(checkNotNull(task));
+        floatTask.define(task);
         mPreCompileTask = floatTask;
     }
 
-    private void addOnPostCompileTask(Runnable task, boolean shouldRunInUiThread) {
+    private void addOnPostCompileTask(@NotNull Runnable task, boolean shouldRunInUiThread) {
         FloatingRunnable floatTask = FloatingRunnable.newInstance();
         if (shouldRunInUiThread) floatTask.markUiRunning();
-        floatTask.define(checkNotNull(task));
+        floatTask.define(task);
         mPostCompileTask = floatTask;
     }
 }
