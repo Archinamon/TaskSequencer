@@ -68,7 +68,7 @@ public class MyActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCrate(savedInstanceState);
         
-        mSequencer = new SequenceBuilder(this)
+        mSequencer = new SequenceBuilder()
                 .parseSequence(new FillUi())
                 .build(Mode.COHERENCE);
     }
