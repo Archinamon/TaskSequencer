@@ -1,5 +1,9 @@
 # TaskSequencer
 
+Small, simple and powerfull annotation-based wrapper will buitifully organize and handle common background runnable tasks. This library supports a pre- and post-conditions, declaring as simple methods. Tune every single task in way you need to use it and don't worry about context references by disallowing synthetic class declaration!
+
+Designed to be useful in building and configuring Ui where always a lot of asynchronous tasks which needs a delivery point into ui-thread. Organizing as sequences will help you to hold all logic apart within only one class per chain.
+
 Usage
 -------
 
