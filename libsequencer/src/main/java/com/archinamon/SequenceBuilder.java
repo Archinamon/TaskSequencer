@@ -104,7 +104,7 @@ public final class SequenceBuilder {
         return this;
     }
 
-    public RunnableSequencerImpl build(Mode mode) {
+    public ISequencer build(Mode mode) {
         mMode = mode;
         return new RunnableSequencerImpl(this);
     }
