@@ -57,11 +57,11 @@ final class RunnableSequencerImpl implements ISequencer {
 
         void compile() {
             switch (mExecutingMode) {
-                case MODE_COHERENCE:
+                case COHERENCE:
                     final Iterator<FloatingRunnable> iterator = mTaskSet.iterator();
                     doCoherenceStep(iterator);
                     break;
-                case MODE_ONEWAY:
+                case ONEWAY:
                     for (final FloatingRunnable task : mTaskSet) {
                         if (task.isUiRunning()) {
                             mContext.runOnUiThread(task::run);
